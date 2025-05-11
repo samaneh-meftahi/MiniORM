@@ -27,7 +27,6 @@ public class SchemaGenerator {
             queries.add(buildMainTable(metaData));
             queries.addAll(buildJoinTables(metaData));
         }
-
         return queries;
     }
 
