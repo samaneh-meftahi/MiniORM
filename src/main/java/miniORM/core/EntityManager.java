@@ -70,7 +70,6 @@ public class EntityManager {
         int index = 1;
 
         for (Field field : fields) {
-            // فیلدهای GeneratedValue را در پارامترهای INSERT قرار نده
             if (metaData.isGeneratedValue(field)) {
                 continue;
             }
@@ -128,7 +127,6 @@ public class EntityManager {
         for (Field field : metaData.getColumnFields()) {
             field.setAccessible(true);
 
-            // اگر فیلد رابطه ManyToOne یا OneToOne است
             if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
                 String fkColumn = getForeignKeyColumnName(field, metaData);
                 Object fkValue = rs.getObject(fkColumn);
@@ -138,7 +136,6 @@ public class EntityManager {
                     field.set(entity, refEntity);
                 }
             } else {
-                // فیلدهای عادی
                 String columnName = metaData.getColumnName(field);
                 Object value = rs.getObject(columnName);
                 field.set(entity, value);
