@@ -1,5 +1,6 @@
 package miniORM.core;
 
+import miniORM.annotation.GeneratedValue;
 import miniORM.annotation.Relation.JoinColumn;
 import miniORM.annotation.Relation.ManyToOne;
 import miniORM.annotation.Relation.OneToOne;
@@ -29,6 +30,21 @@ public class EntityManager {
 
     public <T> void save(T entity) {
         EntityMetaData metaData = getMetaData(entity.getClass());
+        Field idField = metaData.getIdField();
+        idField.setAccessible(true);
+
+        try {
+            Object idValue = idField.get(entity);
+
+            if (!idField.isAnnotationPresent(GeneratedValue.class) && idValue == null) {
+                throw new IllegalArgumentException(
+                        "Primary key value must be set for entity: " + entity.getClass().getSimpleName()
+                );
+            }
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Failed to access id field", e);
+        }
+
         String sql = SQLGenerator.buildInsertQuery(metaData);
 
         try (Connection connection = dataSource.getConnection()) {
@@ -45,11 +61,9 @@ public class EntityManager {
                 stmt.executeUpdate();
 
                 if (hasGeneratedValue) {
-                    Field idField = metaData.getIdField();
                     try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                         if (generatedKeys.next()) {
                             Object generatedId = generatedKeys.getObject(1);
-                            idField.setAccessible(true);
                             idField.set(entity, generatedId);
                         }
                     }
@@ -65,7 +79,8 @@ public class EntityManager {
         }
     }
 
-    private <T> void bindInsertParameters(PreparedStatement stmt, T entity, EntityMetaData metaData) throws SQLException, IllegalAccessException {
+    private <T> void bindInsertParameters(PreparedStatement stmt, T entity, EntityMetaData metaData)
+            throws SQLException, IllegalAccessException {
         List<Field> fields = metaData.getColumnFields();
         int index = 1;
 
@@ -90,14 +105,16 @@ public class EntityManager {
     }
 
     private Object getForeignKeyValue(Object foreignEntity) {
+        EntityMetaData foreignMeta = getMetaData(foreignEntity.getClass());
+        Field idField = foreignMeta.getIdField();
+        idField.setAccessible(true);
         try {
-            Field idField = foreignEntity.getClass().getDeclaredField("id");
-            idField.setAccessible(true);
             return idField.get(foreignEntity);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+        } catch (IllegalAccessException e) {
             throw new RuntimeException("Failed to extract foreign key from related entity", e);
         }
     }
+
 
     public <T> T findById(Class<T> clazz, Object id) {
         EntityMetaData metaData = getMetaData(clazz);

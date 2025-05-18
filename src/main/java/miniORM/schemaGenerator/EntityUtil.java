@@ -65,9 +65,7 @@ public class EntityUtil {
     private static boolean hasAnyRelationField(Class<?> clazz) {
         for (Field field : clazz.getDeclaredFields()) {
             if (field.isAnnotationPresent(ManyToOne.class)
-                    || field.isAnnotationPresent(OneToMany.class)
-                    || field.isAnnotationPresent(OneToOne.class)
-                    || field.isAnnotationPresent(ManyToMany.class)) {
+                    || field.isAnnotationPresent(OneToOne.class)) {
                 return true;
             }
         }
