@@ -30,72 +30,74 @@ public class SchemaGenerator {
         return queries;
     }
 
-    private static String buildMainTable(EntityMetaData metaData) {
-        String tableName = metaData.getTableName().toUpperCase();
+private static String buildMainTable(EntityMetaData metaData) {
+    String tableName = metaData.getTableName().toUpperCase();
 
-        StringJoiner columns = new StringJoiner(", ");
-        StringJoiner foreignKeys = new StringJoiner(", ");
+    StringJoiner columns = new StringJoiner(", ");
+    StringJoiner foreignKeys = new StringJoiner(", ");
 
-        for (Field field : metaData.getColumnFields()) {
-            String columnName = getColumnName(metaData, field).toUpperCase();
-            String sqlType;
-            boolean isPrimaryKey = field.isAnnotationPresent(Id.class);
-            boolean isGenerated = field.isAnnotationPresent(GeneratedValue.class);
+    for (Field field : metaData.getColumnFields()) {
+        String columnName = getColumnName(metaData, field).toUpperCase();
+        String sqlType;
+        boolean isPrimaryKey = field.isAnnotationPresent(Id.class);
+        boolean isGenerated = field.isAnnotationPresent(GeneratedValue.class);
 
-            if (field.isAnnotationPresent(ManyToOne.class)) {
-                // Here, the foreign key column name is set correctly without adding _ID twice
-                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
-                if (joinColumn != null && !joinColumn.name().isEmpty()) {
-                    columnName = joinColumn.name().toUpperCase();
-                } else {
-                    columnName = columnName + "_ID";
-                }
-                sqlType = "BIGINT";
+        // Check if the field represents a ManyToOne or OneToOne relationship
+        if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
+            JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
 
-                EntityMetaData refMeta = new EntityMetaData(field.getType());
-                String refTable = refMeta.getTableName().toUpperCase();
-                String refPK = refMeta.getIdColumnName().toUpperCase();
-
-                foreignKeys.add("FOREIGN KEY (" + columnName + ") REFERENCES " + refTable + "(" + refPK + ")");
-            } else if (field.isAnnotationPresent(OneToOne.class)) {
-                JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
-                if (joinColumn != null && !joinColumn.name().isEmpty()) {
-                    columnName = joinColumn.name().toUpperCase();
-                } else {
-                    columnName = columnName + "_ID";
-                }
-                sqlType = "BIGINT";
-
-                EntityMetaData refMeta = new EntityMetaData(field.getType());
-                String refTable = refMeta.getTableName().toUpperCase();
-                String refPK = refMeta.getIdColumnName().toUpperCase();
-
-                columns.add(columnName + " " + sqlType + " UNIQUE");
-                foreignKeys.add("FOREIGN KEY (" + columnName + ") REFERENCES " + refTable + "(" + refPK + ")");
-                continue;
+            // Use the name from JoinColumn if present, otherwise append "_ID"
+            if (joinColumn != null && !joinColumn.name().isEmpty()) {
+                columnName = joinColumn.name().toUpperCase();
             } else {
-                sqlType = mapJavaTypeToSqlType(field.getType());
+                columnName = columnName + "_ID";
             }
 
-            String columnDef = columnName + " " + sqlType;
+            // Determine the SQL type based on the referenced entity's primary key type
+            EntityMetaData refMeta = new EntityMetaData(field.getType());
+            sqlType = mapJavaTypeToSqlType(refMeta.getIdField().getType());
 
-            if (isPrimaryKey) {
-                columnDef += " PRIMARY KEY NOT NULL";
-                if (isGenerated) {
-                    // Add auto_increment for auto-generated primary keys
-                    columnDef += " AUTO_INCREMENT";
-                }
+            // For OneToOne relationships, add UNIQUE constraint
+            if (field.isAnnotationPresent(OneToOne.class)) {
+                columns.add(columnName + " " + sqlType + " UNIQUE");
+            } else {
+                columns.add(columnName + " " + sqlType);
             }
 
-            columns.add(columnDef);
+            String refTable = refMeta.getTableName().toUpperCase();
+            String refPK = refMeta.getIdColumnName().toUpperCase();
+
+            // Add foreign key constraint referencing the parent table's primary key
+            foreignKeys.add("FOREIGN KEY (" + columnName + ") REFERENCES " + refTable + "(" + refPK + ")");
+            continue; // Skip further processing for this field
+        } else {
+            // Map Java type to corresponding SQL type for regular fields
+            sqlType = mapJavaTypeToSqlType(field.getType());
         }
 
-        String fullColumns = columns.toString();
-        if (foreignKeys.length() > 0) {
-            fullColumns += ", " + foreignKeys.toString();
+        String columnDef = columnName + " " + sqlType;
+
+        // Define primary key columns with NOT NULL and AUTO_INCREMENT if generated
+        if (isPrimaryKey) {
+            columnDef += " PRIMARY KEY NOT NULL";
+            if (isGenerated) {
+                columnDef += " AUTO_INCREMENT";
+            }
         }
-        return "CREATE TABLE IF NOT EXISTS " + tableName + " (" + fullColumns + ")";
+
+        columns.add(columnDef);
     }
+
+    String fullColumns = columns.toString();
+
+    // Append foreign key constraints if any exist
+    if (foreignKeys.length() > 0) {
+        fullColumns += ", " + foreignKeys.toString();
+    }
+
+    // Return the complete CREATE TABLE statement
+    return "CREATE TABLE IF NOT EXISTS " + tableName + " (" + fullColumns + ")";
+}
 
     private static List<String> buildJoinTables(EntityMetaData metaData) {
         List<String> joinQueries = new ArrayList<>();
