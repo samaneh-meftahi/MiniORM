@@ -6,6 +6,7 @@ import miniORM.schemaGenerator.EntityUtil;
 import miniORM.schemaGenerator.SchemaGenerator;
 import demo.model.Customer;
 import demo.model.Order;
+import miniORM.schemaGenerator.config.SchemaGenerationStrategy;
 
 import java.sql.SQLException;
 import java.util.Set;
@@ -20,8 +21,11 @@ public class Main {
         System.out.println("Number of @Entity classes found: " + entities.size());
         entities.forEach(c -> System.out.println("Entity: " + c.getName()));
 
-        // Create database tables
-        SchemaGenerator.initializeDatabase();
+        // Initialize or update the database schema based on the specified strategy:
+        // CREATE - Drops existing tables and creates new ones from scratch
+        // UPDATE - Adds missing columns to existing tables without dropping data
+        // NONE   - Skips any schema changes
+        SchemaGenerator.initializeDatabase(SchemaGenerationStrategy.CREATE);
 
         // Create EntityManager and Repositories
         EntityManager em = new EntityManager(dataSource);

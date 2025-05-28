@@ -19,8 +19,6 @@ public class Order {
     @JoinColumn(name = "customer_id")
     private Customer customer;
 
-    // Getter و Setter ها
-
     public Long getId() {
         return id;
     }

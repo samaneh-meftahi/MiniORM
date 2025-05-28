@@ -212,7 +212,9 @@ public class EntityManager {
         }
     }
 
-    private <T> void setUpdateParameters(PreparedStatement statement, T entity, EntityMetaData metaData) throws SQLException, IllegalAccessException {
+    private <T> void setUpdateParameters(PreparedStatement statement, T entity, EntityMetaData metaData)
+            throws SQLException, IllegalAccessException {
+
         List<Field> fields = metaData.getColumnFields();
         Field idField = metaData.getIdField();
 
@@ -221,6 +223,15 @@ public class EntityManager {
             if (!field.equals(idField)) {
                 field.setAccessible(true);
                 Object value = field.get(entity);
+
+                if (field.isAnnotationPresent(ManyToOne.class)) {
+                    if (value == null) {
+                        statement.setObject(paramIndex++, null);
+                        continue;
+                    }
+                    value = getForeignKeyValue(value);
+                }
+
                 statement.setObject(paramIndex++, value);
             }
         }

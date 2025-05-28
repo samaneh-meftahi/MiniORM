@@ -5,6 +5,7 @@ import miniORM.db.DataSourceProvider;
 import miniORM.schemaGenerator.SchemaGenerator;
 import demo.model.Customer;
 import demo.model.Order;
+import miniORM.schemaGenerator.config.SchemaGenerationStrategy;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class OrmIntegrationTest {
 
     @BeforeAll
     void setupDatabase() {
-        SchemaGenerator.initializeDatabase();
+        SchemaGenerator.initializeDatabase(SchemaGenerationStrategy.CREATE);
         entityManager = new EntityManager(DataSourceProvider.getDataSource());
     }
 
@@ -62,6 +63,37 @@ public class OrmIntegrationTest {
         assertNotNull(foundOrder.getCustomer(), "Order's customer should not be null.");
         assertEquals(customer.getId(), foundOrder.getCustomer().getId(), "Order's customer ID should match.");
     }
+    @Test
+    @org.junit.jupiter.api.Order(4)
+    void updateCustomer_shouldPersistUpdatedFields() {
+        Customer customer = new Customer();
+        customer.setName("Sara Safari");
+        entityManager.save(customer);
+
+        customer.setName("Sara Sadeghi");
+        entityManager.update(customer);
+
+        Customer updated = entityManager.findById(Customer.class, customer.getId());
+        assertNotNull(updated, "Updated customer should be found.");
+        assertEquals("Sara Sadeghi", updated.getName(), "Customer name should be updated.");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(5)
+    void deleteCustomer_shouldRemoveCustomerFromDatabase() {
+        Customer customer = new Customer();
+        customer.setName("Hossein Shams");
+        entityManager.save(customer);
+
+        Long customerId = customer.getId();
+        assertNotNull(customerId, "Customer ID should be generated.");
+
+        entityManager.delete(Customer.class, customerId);
+
+        Customer deleted = entityManager.findById(Customer.class, customerId);
+        assertNull(deleted, "Customer should be null after deletion.");
+    }
+
 
     @Test
     @org.junit.jupiter.api.Order(3)

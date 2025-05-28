@@ -90,4 +90,11 @@ public class EntityUtil {
 
         return entities.iterator().next().getPackageName();
     }
+
+     static Set<Class<?>> getAllEntities() {
+        Set<Class<?>> allEntities = new HashSet<>();
+        allEntities.addAll(findEntitiesWithoutRelations());
+        allEntities.addAll(findEntitiesWithRelations());
+        return allEntities;
+    }
 }

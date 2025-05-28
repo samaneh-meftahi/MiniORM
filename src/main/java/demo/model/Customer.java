@@ -16,10 +16,12 @@ public class Customer {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "lastName")
+    private String lastName;
+
     @OneToMany(mappedBy = "customer")
     private List<Order> orders;
 
-    // Getter و Setter ها
 
     public Long getId() {
         return id;
