@@ -2,6 +2,7 @@ package miniORM.sql;
 
 import miniORM.annotation.Relation.JoinColumn;
 import miniORM.annotation.Relation.ManyToOne;
+import miniORM.exception.OrmMappingException;
 import miniORM.metaData.EntityMetaData;
 
 import java.lang.reflect.Field;
@@ -59,7 +60,11 @@ public class SQLGenerator {
                 return field.getName() + "_id";
             }
         } else {
-            return metaData.getColumnName(field);
+            try {
+                return metaData.getColumnName(field);
+            } catch (Exception e) {
+                throw new OrmMappingException("Failed to get column name for field: " + field.getName(), e);
+            }
         }
     }
 }

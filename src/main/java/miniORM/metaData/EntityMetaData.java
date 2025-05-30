@@ -80,7 +80,7 @@ public class EntityMetaData {
                 return field;
             }
         }
-        throw new RuntimeException("No field annotated with @Id in " + clazz.getSimpleName());
+        throw new OrmException("No field annotated with @Id in " + clazz.getSimpleName());
     }
 
     public String getIdColumnName() {
@@ -121,7 +121,7 @@ public class EntityMetaData {
             field.setAccessible(true);
             return field.get(entity);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Cannot access field " + field.getName() + " in " + entity.getClass().getSimpleName(), e);
+            throw new OrmException("Cannot access field " + field.getName() + " in " + entity.getClass().getSimpleName(), e);
         }
     }
 
@@ -172,4 +172,3 @@ public class EntityMetaData {
         return type.isAnnotationPresent(Entity.class);
     }
 }
-

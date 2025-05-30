@@ -2,6 +2,7 @@ package miniORM.schemaGenerator;
 
 import miniORM.annotation.*;
 import miniORM.annotation.Relation.*;
+import miniORM.exception.OrmException;
 import miniORM.metaData.EntityMetaData;
 
 import java.lang.reflect.Field;
@@ -17,14 +18,19 @@ public class CreateQueryGenerator {
         List<String> queries = new ArrayList<>();
 
         for (Class<?> clazz : entityClasses) {
-            EntityMetaData metaData = new EntityMetaData(clazz);
+            EntityMetaData metaData;
+            try {
+                metaData = new EntityMetaData(clazz);
+            } catch (OrmException e) {
+                throw new OrmException("Invalid entity class: " + clazz.getName(), e);
+            }
             queries.add(buildMainTable(metaData));
             queries.addAll(buildJoinTables(metaData));
         }
         return queries;
     }
 
-     static String buildMainTable(EntityMetaData metaData) {
+    static String buildMainTable(EntityMetaData metaData) {
         String tableName = metaData.getTableName().toUpperCase();
 
         StringJoiner columns = new StringJoiner(", ");
@@ -44,7 +50,12 @@ public class CreateQueryGenerator {
                     columnName = columnName + "_ID";
                 }
 
-                EntityMetaData refMeta = new EntityMetaData(field.getType());
+                EntityMetaData refMeta;
+                try {
+                    refMeta = new EntityMetaData(field.getType());
+                } catch (OrmException e) {
+                    throw new OrmException("Failed to get metadata for related entity: " + field.getType().getName(), e);
+                }
                 sqlType = SqlTypeMapper.mapJavaTypeToSqlType(refMeta.getIdField().getType());
 
                 if (field.isAnnotationPresent(OneToOne.class)) {
@@ -83,7 +94,7 @@ public class CreateQueryGenerator {
         return "CREATE TABLE IF NOT EXISTS " + tableName + " (" + fullColumns + ")";
     }
 
-     static List<String> buildJoinTables(EntityMetaData metaData) {
+    static List<String> buildJoinTables(EntityMetaData metaData) {
         List<String> joinQueries = new ArrayList<>();
 
         for (Field field : metaData.getAllRelationFields()) {
@@ -95,7 +106,12 @@ public class CreateQueryGenerator {
             ParameterizedType pt = (ParameterizedType) genericType;
             Class<?> genericClass = (Class<?>) pt.getActualTypeArguments()[0];
 
-            EntityMetaData targetMeta = new EntityMetaData(genericClass);
+            EntityMetaData targetMeta;
+            try {
+                targetMeta = new EntityMetaData(genericClass);
+            } catch (OrmException e) {
+                throw new OrmException("Failed to get metadata for related entity: " + genericClass.getName(), e);
+            }
 
             List<String> tables = Arrays.asList(metaData.getTableName().toUpperCase(), targetMeta.getTableName().toUpperCase());
             Collections.sort(tables);
@@ -129,10 +145,11 @@ public class CreateQueryGenerator {
     private static String getColumnName(EntityMetaData metaData, Field field) {
         if (field.isAnnotationPresent(Column.class)) {
             String name = field.getAnnotation(Column.class).name();
-            if (!name.isEmpty()) return name;
+            if (name != null && !name.isEmpty()) return name;
         }
         return field.getName();
     }
+
     public static Set<String> getCreatedJoinTables() {
         return createdJoinTables;
     }

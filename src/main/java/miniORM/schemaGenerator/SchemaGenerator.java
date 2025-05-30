@@ -1,5 +1,6 @@
 package miniORM.schemaGenerator;
 
+import miniORM.exception.OrmDatabaseException;
 import miniORM.metaData.EntityMetaData;
 import miniORM.db.DataSourceProvider;
 import miniORM.schemaGenerator.config.SchemaGenerationStrategy;
@@ -8,7 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 
 public class SchemaGenerator {
 
@@ -54,7 +56,7 @@ public class SchemaGenerator {
             }
         } catch (Exception e) {
             logger.error("Schema generation failed.", e);
-            throw new RuntimeException("Schema generation failed.", e);
+            throw new OrmDatabaseException("Schema generation failed.", e);
         }
     }
 

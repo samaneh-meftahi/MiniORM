@@ -4,6 +4,10 @@ import miniORM.annotation.GeneratedValue;
 import miniORM.annotation.Relation.JoinColumn;
 import miniORM.annotation.Relation.ManyToOne;
 import miniORM.annotation.Relation.OneToOne;
+import miniORM.exception.OrmDatabaseException;
+import miniORM.exception.OrmException;
+import miniORM.exception.OrmMappingException;
+import miniORM.exception.OrmTransactionException;
 import miniORM.metaData.EntityMetaData;
 import miniORM.sql.SQLGenerator;
 
@@ -37,12 +41,12 @@ public class EntityManager {
             Object idValue = idField.get(entity);
 
             if (!idField.isAnnotationPresent(GeneratedValue.class) && idValue == null) {
-                throw new IllegalArgumentException(
+                throw new OrmException(
                         "Primary key value must be set for entity: " + entity.getClass().getSimpleName()
                 );
             }
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to access id field", e);
+            throw new OrmMappingException("Failed to access id field", e);
         }
 
         String sql = SQLGenerator.buildInsertQuery(metaData);
@@ -72,10 +76,10 @@ public class EntityManager {
                 tx.commit();
             } catch (Exception e) {
                 tx.rollback();
-                throw new RuntimeException("Save operation failed", e);
+                throw new OrmTransactionException("Save operation failed", e);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Database connection failed", e);
+            throw new OrmDatabaseException("Database connection failed", e);
         }
     }
 
@@ -111,7 +115,7 @@ public class EntityManager {
         try {
             return idField.get(foreignEntity);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to extract foreign key from related entity", e);
+            throw new OrmMappingException("Failed to extract foreign key from related entity", e);
         }
     }
 
@@ -131,8 +135,10 @@ public class EntityManager {
                 }
                 return null;
             }
-        } catch (SQLException | ReflectiveOperationException e) {
-            throw new RuntimeException("FindById operation failed", e);
+        } catch (SQLException e) {
+            throw new OrmDatabaseException("FindById operation failed", e);
+        } catch (ReflectiveOperationException e) {
+            throw new OrmMappingException("FindById operation failed", e);
         }
     }
 
@@ -172,7 +178,6 @@ public class EntityManager {
         return field.getName().toUpperCase() + "_ID";
     }
 
-
     public <T> List<T> findAll(Class<T> clazz) {
         EntityMetaData metaData = getMetaData(clazz);
         String sql = SQLGenerator.buildSelectAllQuery(metaData);
@@ -185,8 +190,10 @@ public class EntityManager {
             while (rs.next()) {
                 resultList.add(mapResultSetToEntity(rs, clazz, metaData));
             }
-        } catch (SQLException | ReflectiveOperationException e) {
-            throw new RuntimeException("FindAll operation failed", e);
+        } catch (SQLException e) {
+            throw new OrmDatabaseException("FindAll operation failed", e);
+        } catch (ReflectiveOperationException e) {
+            throw new OrmMappingException("FindAll operation failed", e);
         }
         return resultList;
     }
@@ -205,10 +212,10 @@ public class EntityManager {
                 transactionManager.commit();
             } catch (SQLException | IllegalAccessException e) {
                 transactionManager.rollback();
-                throw new RuntimeException("Update operation failed", e);
+                throw new OrmTransactionException("Update operation failed", e);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Database connection failed", e);
+            throw new OrmDatabaseException("Database connection failed", e);
         }
     }
 
@@ -255,10 +262,10 @@ public class EntityManager {
                 transactionManager.commit();
             } catch (SQLException e) {
                 transactionManager.rollback();
-                throw new RuntimeException("Delete operation failed", e);
+                throw new OrmTransactionException("Delete operation failed", e);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Database connection failed", e);
+            throw new OrmDatabaseException("Database connection failed", e);
         }
     }
 }

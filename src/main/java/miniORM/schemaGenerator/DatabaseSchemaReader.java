@@ -1,6 +1,7 @@
 package miniORM.schemaGenerator;
 
 import miniORM.db.DataSourceProvider;
+import miniORM.exception.OrmDatabaseException;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -24,7 +25,7 @@ public class DatabaseSchemaReader {
                 int columnSize = rs.getInt("COLUMN_SIZE");
 
                 String columnDef = typeName;
-                if (typeName.equalsIgnoreCase("VARCHAR")) {
+                if ("VARCHAR".equalsIgnoreCase(typeName)) {
                     columnDef += "(" + columnSize + ")";
                 }
 
@@ -32,7 +33,7 @@ public class DatabaseSchemaReader {
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error reading table schema: " + tableName, e);
+            throw new OrmDatabaseException("Error reading table schema: " + tableName, e);
         }
 
         return columns;

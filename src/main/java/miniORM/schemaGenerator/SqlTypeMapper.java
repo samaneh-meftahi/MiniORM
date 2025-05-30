@@ -1,5 +1,7 @@
 package miniORM.schemaGenerator;
 
+import miniORM.exception.OrmMappingException;
+
 public class SqlTypeMapper {
     public static String mapJavaTypeToSqlType(Class<?> type) {
         if (type == String.class) return "VARCHAR(255)";
@@ -17,6 +19,6 @@ public class SqlTypeMapper {
         if (type == java.math.BigDecimal.class) return "DECIMAL(19,2)";
         if (type == java.util.UUID.class) return "UUID";
 
-        throw new IllegalArgumentException("Unsupported Java type for SQL mapping: " + type.getName());
+        throw new OrmMappingException("Unsupported Java type for SQL mapping: " + type.getName());
     }
 }

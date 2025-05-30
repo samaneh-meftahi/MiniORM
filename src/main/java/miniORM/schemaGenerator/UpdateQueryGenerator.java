@@ -1,11 +1,12 @@
 package miniORM.schemaGenerator;
 
+import miniORM.exception.OrmDatabaseException;
+import miniORM.exception.OrmMappingException;
 import miniORM.metaData.EntityMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Statement;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,17 +17,29 @@ public class UpdateQueryGenerator {
     private static final Logger logger = LoggerFactory.getLogger(SchemaGenerator.class);
 
     static void updateSchema(Statement statement) {
-
-
         logger.info("Running UPDATE strategy...");
         Set<Class<?>> allEntities = EntityUtil.getAllEntities();
 
         for (Class<?> clazz : allEntities) {
-            EntityMetaData metaData = new EntityMetaData(clazz);
+            EntityMetaData metaData;
+            try {
+                metaData = new EntityMetaData(clazz);
+            } catch (OrmMappingException e) {
+                logger.warn("Skipping class {} due to mapping error: {}", clazz.getName(), e.getMessage());
+                continue;
+            }
+
             String tableName = metaData.getTableName().toUpperCase();
 
             // Read existing columns from DB
-            Map<String, String> dbColumns = DatabaseSchemaReader.getTableColumns(tableName);
+            Map<String, String> dbColumns;
+            try {
+                dbColumns = DatabaseSchemaReader.getTableColumns(tableName);
+            } catch (OrmDatabaseException e) {
+                logger.warn("Failed to read columns for table {}: {}", tableName, e.getMessage());
+                continue;
+            }
+
             // Columns defined in the entity
             Map<String, String> entityColumns = metaData.getColumnDefinitions();
 

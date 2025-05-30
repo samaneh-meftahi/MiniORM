@@ -1,4 +1,3 @@
-import demo.model.Student;
 import miniORM.core.EntityManager;
 import miniORM.db.DataSourceProvider;
 import demo.repository.Repository;
@@ -31,7 +30,6 @@ public class Main {
         EntityManager em = new EntityManager(dataSource);
         Repository<Customer> customerRepo = new Repository<>(Customer.class, em);
         Repository<Order> orderRepo = new Repository<>(Order.class, em);
-        Repository<Student> studentRepo = new Repository<>(Student.class,em);
 
         // Save a customer
         Customer customer = new Customer();
@@ -47,11 +45,6 @@ public class Main {
         order.setProduct("Book");
         order.setCustomer(customer);
         orderRepo.save(order);
-
-        Student student=new Student();
-        student.setUserId("sm");
-        student.setName("sm");
-        studentRepo.save(student);
 
         Customer loadedCustomer = customerRepo.findById(1L);
         System.out.println("Loaded customer: " + loadedCustomer.getName());
